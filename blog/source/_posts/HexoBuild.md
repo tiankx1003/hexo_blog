@@ -1,8 +1,7 @@
 ---
 title: Hexo搭建个人博客
 ---
-## 使用Hexo搭建个人博客
-github为每个账户提供了一个免费的二级域名{username}.github.io，只需要在仓库{username}.github.io.git中编写网页的代码就能自动实现网站的解析。使用Hexo能通过markdown文件实现博客内容的编写与发布，下面是Ubuntu1904下Hexo的搭建过程，其他环境同理。
+github为每个账户提供了一个免费的二级域名{username}.github.io，只需要在仓库{username}.github.io.git中编写代码就能自动实现网页的解析。使用Hexo能通过markdown文件实现博客内容的编写与发布，下面是Ubuntu1904下Hexo的搭建过程，其他环境同理。
 
 ### 环境安装
 ```bash
