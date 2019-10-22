@@ -8,7 +8,7 @@ subtitle:
 description:
 keywords:
 author: Tiankx
-language: ch
+language: zh-Hans
 timezone:
 
 # URL
@@ -45,7 +45,7 @@ relative_link: false
 future: true
 highlight:
   enable: true
-  line_number: true
+  line_number: false
   auto_detect: false
   tab_replace:
 
@@ -84,7 +84,7 @@ pagination_dir: page
 # Extensions
 ## Plugins: https://hexo.io/plugins/
 ## Themes: https://hexo.io/themes/
-theme: yilia
+theme: melody
 
 # Deployment
 ## Docs: https://hexo.io/docs/deployment.html
@@ -94,7 +94,7 @@ deploy:
   branch: master # 默认
 
 # 设置头像
-avatar: /img/header.jpg
+# avatar: /img/header.jpg
 
 jsonContent:
     meta: false

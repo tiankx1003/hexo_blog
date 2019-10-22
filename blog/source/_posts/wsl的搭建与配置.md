@@ -1,6 +1,6 @@
 ---
 titile: wsl的搭建与配置
-tags: linux
+tags: Linux
 ---
 
 
