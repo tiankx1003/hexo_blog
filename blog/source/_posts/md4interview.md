@@ -174,6 +174,7 @@ Kafka数据重复，可以在下一级SparkStreaming、redis、或hive中dwd层�
 >**Brokercan参数设置(server.properties)**
 
 1. 网络和io操作线程配置优化
+
 ```properties
 # broker处理消息的最大线程数(默认为3)
 num.network.threads=cpu核心数+1
@@ -182,6 +183,7 @@ num.io.threads=cpu核心数*2
 ```
 
 2. log数据文件刷盘策略
+
 ```properties
 # producer每写入10000条数据时，刷新数据到磁盘
 log.flush.interval.messages=1000
@@ -190,12 +192,14 @@ log.flush.interval.ms=1000
 ```
 
 3. 日志保留策略配置
+
 ```properties
 # 保留三天或者更短(log.clear.delete.retention.ms)
 log.retention.hours=72
 ```
 
 4. Replica相关配置
+
 ```properties
 # 新创建一个topic时，默认的Replica数量，Replica过少会影响数据的可用性，太多则会白白浪费存储资源，一般建议2 ~ 3为宜
 offsets.topic.replication.factor=3
@@ -225,3 +229,59 @@ fetch.wait.max.ms=100
 export KAFKA_HEAP_OPTS="-Xms4g -Xmx4g"
 ```
 
+## Hive
+### Hive架构
+
+
+### Hive和数据库比较
+1. 数据存储位置不同
+  Hive存储在HDFS，数据库将数据保存在块设备或者本地文件系统中
+2. 数据更新
+  Hive不建议对数据改写，而数据库中的数据通常是需要经常进行修改的
+3. 执行延迟
+  Hive执行延迟较高，数据库的执行延迟低，但是数据库的数据规模也较小，当数据的规模超过数据库的处理能力时，Hive的并行计算显然能体现出优势
+4. 数据规模
+  Hive支持很大规模的数据计算，数据库可以支持的数据规模较小
+
+### 内部表和外部表
+**管理表** 当删除一个管理表时，Hive也会删除表对应的数据，管理表不适合和其他工具共享数据
+**外部表** 删除该表并不会删除掉原始数据，删除的是表的元数据
+
+### 4个By
+**Sort By** 分区内有序
+**Order By** 全局排序，只有一个Reducer
+**Distribute By** 类似MR中Partition，进行分区，结合sort by使用
+**Cluster By** 当Distribute by和Sort by字段相同时，可以使用Cluster by代替。Cluster by兼具Distribute by和Sort by的功能，但是排序只能是升序排序，不能指定排序规则ASC或者DESC
+
+### 窗口函数
+***RANK()*** 排序，相同时会重复，总数不会变
+***DENSE_RANK()*** 排序相同时会重复，总数会减少
+***ROW_NUMBER()*** 会根据顺序计算
+`OVER()` 指定分析函数工作的数据窗口大小，这个数据窗口大小可能会随着行的变化而变化
+`CURRENT ROW` 当前行
+`n PRECEDING` 往前n行数据
+`n FOLLOWING` 往后n行数据
+`UNBOUNDED` 起点，`UNBOUNDED PRECEDING`表示从前面的起点，`UNBOUNDED FOLLOWING`表示到后面的终点
+`LAG(col,n)` 往前第n行数据
+`LEAD(col,n)` 往后第n行数据
+`NTILE(n)` 把有序分区中的行分发到指定数据的组中，各个组有编号，编号从1开始，对于每一行，NTILE返回慈航所属的组的编号，注意:n必须为int类型
+
+### 自定义UDF UDAF UDTF
+**UDF** 继承UDF重写evaluate方法
+**UDTF** 继承自GenericUDTF，重写3个方法，initialize(自定义输出的列名和类型) process(将结果返回forward(result)) close
+自定义UDF/UDTF用于自己埋点Log打印日志，出错或者数据异常，方便调试
+
+### Hive优化
+**MapJoin**
+如果不指定MapJoin或者不符合MapJoin的条件，那么Hive解析器会将Join操作转换成Common Join，即在Reduce阶段完成Join，容易发生数据倾斜。可以使用MapJoin把小表全部加载到内存Map端执行Join，避免reduce处理
+**行列过滤**
+列处理: 在SELECT中，只拿需要的列，如果有，尽量使用分区过滤，少用SELECT *
+行处理: 在分区裁剪中，当使用外关联时，如果将副表的过滤条件写在Where后面，那么就会先全表关联，然后再过滤
+**采用分桶技术**
+**采用分区技术**
+**合理设置Map数**
+通常情况下，作业会通过input的目录产生一个或者多个map任务，主要的决定因素有:input的文件总个数，input的文件大小，集群设置的文件块大小；
+map数并不是越多越好，如果一个任务有很多小文件(远远小于块大小128m)，则每个小文件也会被当作一个块，用一个map任务来完成，而一个map任务启动和初始化的时间远远大于逻辑处理的时间，就会造成很大的资源浪费，而且同时可执行的map数都是受限的。这种情形一般通过减少map数来解决；
+并不是每个map处理接近128m的文件块就能解决所有问题，如果一个127m的文件，正常会用一个map完成，但是如果这个文件只有一个或者两个小字段，却有几千万条记录，如果map处理的逻辑比较复杂，用一个map任务去做，肯定效率很低。发生这种情况就需要增加map数。
+**小文件进行合并**
+在map执行前合并小文件，减少map数()
