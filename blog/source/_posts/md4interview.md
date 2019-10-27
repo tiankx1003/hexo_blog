@@ -3,39 +3,39 @@ title: md4interview
 tags: interview
 ---
 
-## 项目技术
-### Kafka
-#### Kafka架构
+# 项目技术
+## Kafka
+### Kafka架构
 <!-- TOOD 手绘Kafka架构图 -->
 
-#### Kafka压测
+### Kafka压测
 Kafka官方压测脚本kafka-consumer-pref-test.sh kafka-producer-pref-test.sh
 使用压测可以查看系统的瓶颈出现在那个部分(CPU、内存、网络IO)，**一般都是网络IO达到瓶颈**
 
-#### Kafka机器数量
+### Kafka机器数量
 kafka数量 = 2 * (峰值生产速度 * 副本数 / 100) + 1
 
-#### kafka的日志保存时间
+### kafka的日志保存时间
 七天
 
-#### Kafka的硬盘大小
+### Kafka的硬盘大小
 每天的数据量 * 7天
 
-#### Kafka监控
+### Kafka监控
 公司自己开发的监控器
 开源的监控器: KafkaManager、KafkaMonitor
 
-#### Kafka分区数
+### Kafka分区数
 分区数并不是越多越好，一般分区数不要超过集群机器数量，分区数越多占用内存越大(ISR等)，一个节点集中的分区也就越多，当它宕机的时候，对系统的影响也就越大
 分区数一般设置为3-10个
 
-#### 副本数设定
+### 副本数设定
 一般设置成2或3个，大部分企业设置为2个
 
-#### Topic个数
+### Topic个数
 通常情况下，多少个日志类型就用多少个Topic，也有对日志类型进行合并的
 
-#### Kafka丢不丢数据
+### Kafka丢不丢数据
 **Ack=0** 相当于异步发送，消息发送完毕即offset增加，继续生产
 **Ack=1** leader收到leader replica对一个消息的接收ack才增加offset，然后继续生产
 **Ack=-1** leader收到所有的replica对一个消息的接收ack才增加offset，然后继续生产
@@ -43,11 +43,12 @@ kafka数量 = 2 * (峰值生产速度 * 副本数 / 100) + 1
 
 <!-- TOOD kafka丢不丢数据 -->
 
-#### Kafka的ISR副本同步队列
+### Kafka的ISR副本同步队列
+ISR(In-Sync Replicas) 副本同步队列。ISR中包括Leader和Follower，如果Leader进程挂掉，会在ISR队列中选择一个服务作为新的Leader，有replica.lag.max.messages(延迟条数)和replica.lag.time.max.ms(延迟时间)两个参数决定一台服务器是否可以加入ISR副本队列，在0.10版本移除了replica.lag.max.messages参数，防止服务频繁的进入队列。
+任意一个维度超过阈值都会把Follower剔除出ISR，存入OSR(Outof-Sync Replicas)列表，新加入的Follower也会存放在OSR中。
 
 
-
-#### Kafka分区分配策略
+### Kafka分区分配策略
 Kafka内部存在两种默认的分区分配策略:**Range**和**RoundRobin**
 >**Range策略**
 
@@ -58,7 +59,7 @@ Kafka内部存在两种默认的分区分配策略:**Range**和**RoundRobin**
 前提是同一个ConsumerGroup里面的所有消费者的num.streams(消费者线程数)必须相等，每个消费者订阅的主题必须相同
 将所有主题分区组成TopicAndPartition列表，然后对TopicAndPartition列表按照hashCode进行排序，最后按照轮询的方式发给每一个消费线程
 
-#### Kafka中的数据量计算
+### Kafka中的数据量计算
 每天的总数据量100g，每天产生1亿条日志，10000万/24/60/60=1150条/秒
 平均每秒钟1150条
 低谷每秒钟400条
@@ -66,29 +67,29 @@ Kafka内部存在两种默认的分区分配策略:**Range**和**RoundRobin**
 每条日志大小0.5k~2k
 每秒数据量2.3MB~20MB
 
-#### Kafka挂掉
+### Kafka挂掉
 Flume记录 <!-- 使用Flume恢复Kafka数据 -->
 Kafka日志 <!-- kafka日志和原始数据的格式不同 -->
 Kafka中日志保存时间为7天，短期内没事
 
-#### Kafka数据积压怎么处理
+### Kafka数据积压怎么处理
  * 如果是kafka消费能力不足，可以同时增加topic的分区数和消费者组的消费者数量来提升(注:保证**消费者数=分区数**)
  * 如果是下游的数据处理不及时，可以提高没批次拉取的数量。批次拉取数据过好(拉取数据/处理事件<生产速度)，导致处理的数据小于生产的数据，也会造成数据积压
 
-#### Kafka幂等性
+### Kafka幂等性
 Producer的幂等性指的是当发送一条消息时，数据在Server端只会被持久化一次，数据不丢且不重。
 但是这里的幂等性是有条件的:
  * 只能保证Producer在单个会话内不丢不重，如果Producer出现意外挂掉再重启是无法保证的(幂等性情况下，是无法获取之前的状态信息的，因此无法做到跨会话级别的不丢不重)
  * 幂等性不能跨多个Topic-Partition，只能单个Partition内的幂等性，当涉及多个Topic-Partition时，这中间的状态并没有同步
 **数据不丢，但是有可能数据重复**
 
-#### Kafka事务
+### Kafka事务
 
-#### Kafka数据重复
+### Kafka数据重复
 Kafka数据重复，可以在下一级SparkStreaming、redis、或hive中dwd层去重
 去重的手段:分组、按照id开窗只取第一个值
 
-#### Kafka参数优化
+### Kafka参数优化
 >**Brokercan参数设置(server.properties)**
 
 1. 网络和io操作线程配置优化
