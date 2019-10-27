@@ -56,6 +56,7 @@ Kafka内部存在两种默认的分区分配策略:**Range**和**RoundRobin**
 首先对同一个topic里面的分区按照序列号进行排序，并对消费者按照字母顺序进行排序，然后用Partitions分区的个数除以消费者线程的总数来决定每个消费者线程消费几个分区。如果除不尽，那么前几个消费者线程将会多消费一个分区
 
 >**RoundRobin**
+
 前提是同一个ConsumerGroup里面的所有消费者的num.streams(消费者线程数)必须相等，每个消费者订阅的主题必须相同
 将所有主题分区组成TopicAndPartition列表，然后对TopicAndPartition列表按照hashCode进行排序，最后按照轮询的方式发给每一个消费线程
 
@@ -63,9 +64,9 @@ Kafka内部存在两种默认的分区分配策略:**Range**和**RoundRobin**
 每天的总数据量100g，每天产生1亿条日志，10000万/24/60/60=1150条/秒
 平均每秒钟1150条
 低谷每秒钟400条
-高峰每秒钟1150条*(2~20倍)=2300条~23000条
-每条日志大小0.5k~2k
-每秒数据量2.3MB~20MB
+高峰每秒钟1150条*(2 ~ 20倍)=2300条 ~ 23000条
+每条日志大小0.5k ~ 2k
+每秒数据量2.3MB ~20MB
 
 ### Kafka挂掉
 Flume记录 <!-- 使用Flume恢复Kafka数据 -->
@@ -116,7 +117,7 @@ log.retention.hours=72
 
 4. Replica相关配置
 ```conf
-# 新创建一个topic时，默认的Replica数量，Replica过少会影响数据的可用性，太多则会白白浪费存储资源，一般建议2~3为宜
+# 新创建一个topic时，默认的Replica数量，Replica过少会影响数据的可用性，太多则会白白浪费存储资源，一般建议2 ~ 3为宜
 offsets.topic.replication.factor=3
 ```
 
