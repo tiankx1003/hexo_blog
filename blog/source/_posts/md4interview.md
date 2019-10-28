@@ -165,6 +165,13 @@ Producer的幂等性指的是当发送一条消息时，数据在Server端只会
 **数据不丢，但是有可能数据重复**
 
 ### Kafka事务
+Kafka从0.11版本开始引入了事务支持，事务可以保证Kafka在Exactly Once语义的基础上，生产和消费可以跨分区和会话，要么全部成功，要么全部失败。
+
+1. Produce事务
+为了实现跨分区跨会话的事务，需要引入一个全局唯一的Transaction ID，并将Producer获得的PID和Transaction ID绑定，这样当Producer重启后就可以通过正在进行的Transaction ID获得原来的PID
+为了管理Transction Coordinator交互获得Transaction ID对应的任务状态。Transaction Coordinator还负责将事务所有写入Kafka的一个内部Topic，这样即使整个服务重启，由于事务状态得到保存，进行中的事务状态可以得到恢复，从而继续进行。
+2. Consumer事务
+上述事务机制主要是从Producer方面考虑，对于Consumer而言，事务的保证就会相对较弱，尤其是无法保证Commit的信息被精确消费。这是由于Consumer可以通过offset访问任意信息，而且不同的Segment File生命周期不同，同一事务的消息可能会出现重启后被删除的情况
 
 ### Kafka数据重复
 Kafka数据重复，可以在下一级SparkStreaming、redis、或hive中dwd层去重
@@ -231,8 +238,6 @@ export KAFKA_HEAP_OPTS="-Xms4g -Xmx4g"
 
 ## Hive
 ### Hive架构
-
-
 ### Hive和数据库比较
 1. 数据存储位置不同
   Hive存储在HDFS，数据库将数据保存在块设备或者本地文件系统中
@@ -284,4 +289,32 @@ export KAFKA_HEAP_OPTS="-Xms4g -Xmx4g"
 map数并不是越多越好，如果一个任务有很多小文件(远远小于块大小128m)，则每个小文件也会被当作一个块，用一个map任务来完成，而一个map任务启动和初始化的时间远远大于逻辑处理的时间，就会造成很大的资源浪费，而且同时可执行的map数都是受限的。这种情形一般通过减少map数来解决；
 并不是每个map处理接近128m的文件块就能解决所有问题，如果一个127m的文件，正常会用一个map完成，但是如果这个文件只有一个或者两个小字段，却有几千万条记录，如果map处理的逻辑比较复杂，用一个map任务去做，肯定效率很低。发生这种情况就需要增加map数。
 **小文件进行合并**
-在map执行前合并小文件，减少map数()
+在map执行前合并小文件，减少map数，CombineHiveInputFormat具有对文件进行合并的功能(系统默认的格式)，HiveInputFormat没有对小文件合并功能
+**合理设置Reduce数**
+Reduce个数并不是越多越好。过多的启动和初始化Reduce也会消耗时间和资源，另外有多少个Reduce就会有多少输出文件，如果生成了很多小文件，那么如果这些小文件作为下一个任务的输入，则会出现小文件过多的问题。
+**常用参数**
+```sql
+-- 输出合并小文件
+SET hive.merge.mapfiles=true; --默认true，在map-only任务结束时合并小文件
+SET hive.merge.mapredfiles=true; --默认false，在map-reduce任务结束时合并小文件
+SET hive.merge.size.per.task=268435456; --默认256
+SET hive.merge.smallfiles.avgsize=16777216; --当输出文件的平均大小小于该值时，启动一个独立的map-reduce任务进行小文件merge
+```
+
+## HBase总结
+### HBase存储结构
+<!-- TODO 配图 -->
+
+### rowkey设计原则
+1. rowkey长度原则
+2. rowkey散列原则
+3. rowkey唯一原则
+
+<!-- TODO 添加具体原则 -->
+
+### rowkey具体设计
+1. 生成随机数、Hash、散列值
+2. 字符串反转
+
+### Phoenix二级索引原理
+<!-- TODO 详述原理 -->
