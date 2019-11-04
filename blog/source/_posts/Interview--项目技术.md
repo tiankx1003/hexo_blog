@@ -443,8 +443,42 @@ Sqoop任务5分钟~2小时的都有，取决于数量
 
 
 # Spark
+### 简述spark部署方式
+local: 运行在一台机器上，通常用于测试
+Standalone: 构建要给基于Master+Slaves的资源调度集群，Spark任务提交给Master运行，是Spark自身的一个调度系统
+Yarn: Spark客户端直接连接Yarn，不需要额外构建Spark集群，有yarn-client和yarn-cluster两种模式，主要区别在于，Driver程序的运行节点
+Mesos: 国内使用较少
+
+### Spark任务是使用什么提交，JavaEE界面还是脚本
+Shell脚本
+
+### Spark作业提交参数(重点)
+```bash
+spark-submit \
+--master local[5]  \
+--driver-cores 2   \
+--driver-memory 8g \
+--executor-cores 4 \
+--num-executors 10 \
+--executor-memory 8g \
+--class PackageName.ClassName XXXX.jar \
+--name "Spark Job Name" \
+InputPath      \
+OutputPath
+```
+`--executor-cores` 每个executor使用的内核数，默认为1，官方建议2-5个，我们企业使用4个
+`--num-executors` 启动executor的数量，默认为2
+`--executor-memory` executor的内存大小，默认为1g
+`--driver-cores` driver使用内核数，默认为1
+`--driver-memory` driver内存大小，默认为512M
+
+### 手绘并描述Spark架构和作提交流程(重点)
+<!-- TODO 添加配图 -->
+
 
 # Spark Sql, DataFrames, DataSet
+
+# SparkStreaming
 ### Spark Streaming第一次运行不丢失数据
 kafka参数`auto.offset.reset`参数设置成earliest从最初始偏移量开始消费数据
 
@@ -455,16 +489,26 @@ kafka参数`auto.offset.reset`参数设置成earliest从最初始偏移量开始
 极端情况下，如在提交偏移量时断网或停电会造成spark程序第二次启动时重复消费问题，所以在涉及到金额和精确计算的场景需要使用事务保证一次消费
 
 ### Spark Streaming控制每秒消费数据的速度
-通过`spark.streaming.kafka.maxRatePerPartition`参数
-# SparkStreaming
+通过`spark.streaming.kafka.maxRatePerPartition`参数来设置Spark Streaming从kafka分区每秒拉取的条数
 
+### Spark Streaming背压机制
+把`spark.streaming.backpressure.enable`参数设置为true，开启背压机制后Spark Streaming会根据延迟动态去kafka消费数据，上限由`spark.streaming.kafka.maxRatePerPartition`参数控制，所以两个参数一般会一起使用
+
+### Spark Streaming一个stage耗时
+Spark Streaming stage耗时由最慢的task决定，所以根据倾斜时某个task运行慢会导致整个Spark Streaming都运行非常慢
+
+### Spark Streaming优雅关闭
+把`spark.streaming.stopGracefullyOnShutdown`参数设置成true，Spark会在JVM关闭时正常关闭StreamingContext，而不是立马关闭
+或者使用命令`kill application -kill {applicationid}`
+
+### Spark Streaming默认分区个数
+Spark Streaming默认分区个数和所对接的kafka topic分区个数一致，Spark Streaming里一般不会使用repartition算子增大分区，因为repartition会进行shuffle增加耗时
 
 # 元数据管理(Atlas血缘系统)
+https://www.cnblogs.com/mantoudev/p/9986408.html
 
 # 数据质量监控(Griffin)
-
-
-
+https://blog.csdn.net/An342647823/article/details/86543432
 
 # Flink
 ### 应用架构
