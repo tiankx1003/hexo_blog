@@ -37,13 +37,13 @@ sparkSession.catalog.uncacheTable("tableName")
  * RDD的cache默认采用MEMORY_ONLY
 
 ## 2.Spark Join
-> **Spark Join有三种:**
+**Spark Join有三种:**
 
 **HASH JOIN** v1.4之后被淘汰
 **BRAODCAST HASH JOIN** 用于小表join大表，广播小表规避shuffle
 **SORTMERGE JOIN** 用于大表join大表
 
-#### BROADCAST HASH JOIN
+#### 2.1 BROADCAST HASH JOIN
 参数`spark.sql.autoBroadcastJoinThreshold`设置默认广播join的大小，当表的大小超过这个值时会被看作大表不进行广播，可以根据实际的集群规模进行更改。
 广播过大的表会有OOM，当分发表的时间大于join的时间也就没有广播的必要了。
 在项目中使用广播变量的场景:官博jediscluster对象
@@ -66,11 +66,32 @@ coalesce和repartiton都用于改变分区，coalesce用于缩小分区且不会
 <!-- TODO 广播join的具体使用方法 -->
 通过`4040`端口查看SparkUI中任务的具体执行情况，在SQL界面会显示表的大小，根据数值判断需要广播变量进行优化。
 
-#### SORTMERGE JOIN
+#### 2.2 SORT MERGE BUCKET JOIN
+SMB JOIN（Sort-Merge-Bucket）是针对bucket majoin的一种优化
+数据规模不够大时很少会使用到，分桶后小文件过多(分区数 * 桶个数)
+表的数据量够大时(如每张表的数据量达到TB级别)
 
-<!-- TODO 大表join大表的优化 -->
+**使用条件**
+两张表的bucket必须相等
+bucket列==joinlie==sort列
+必须应用在bucket mapjoin，建表时，必须是clustered且sorted
 
-
+**在Hive中的使用**
+```sql
+set hive.auto.convert.sortmerge.join=true; 
+set hive.optimize.bucketmapjoin = true; 
+set hive.optimize.bucketmapjoin.sortedmerge = true; 
+set hive.auto.convert.sortmerge.join.noconditionaltask=true;
+```
+```scala
+//spark中使用分桶
+peopleDF
+    .write
+    .bucketBy(42, "name")
+    .sortBy("age")
+    .saveAsTable("people_bucketd")
+```
+Hive不兼容`saveAsTable`算子，创建的表不能在Hive查询到，只能在SparkShell中查询到。
 
 ## 3.Kryo
 序列化是一种牺牲CPU来节省内存的手段，可以在内存紧张时使用，使用Kyro序列化可以减少Shuffle的数量。

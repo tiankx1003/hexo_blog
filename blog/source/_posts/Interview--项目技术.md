@@ -1,9 +1,79 @@
 ---
 title: Interview--项目技术
+typora-copy-images-to: Interview--项目技术
 tags:
-  - BigData
-  - Interview
+ - BigData
+ - Interview
 ---
+# Linux & Shell
+### Linux命令总结
+
+| 序号 | 命令                          | 命令解释                               |
+| ---- | ----------------------------- | -------------------------------------- |
+| 1    | top                           | 查看内存                               |
+| 2    | df -h                         | 查看磁盘存储情况                       |
+| 3    | iotop                         | 查看磁盘IO读写(yum install iotop安装） |
+| 4    | iotop -o                      | 直接查看比较高的磁盘读写程序           |
+| 5    | netstat -tunlp \| grep 端口号 | 查看端口占用情况                       |
+| 6    | uptime                        | 查看报告系统运行时长及平均负载         |
+| 7    | ps   aux                      | 查看进程                               |
+
+
+### Shell工具
+<!-- TODO 添加具体使用和demo -->
+awk
+sed
+cut
+sort
+
+# Hadoop
+### 常用端口号
+
+| Port  | Desc |
+| :---- | :--- |
+| 50070 | -    |
+| 50075 | -    |
+| 50090 | -    |
+| 50010 | -    |
+| 9000  | -    |
+| 8088  | -    |
+| 19888 | -    |
+| 16010 | -    |
+| 8080  | -    |
+| 8081  | -    |
+| 18080 | -    |
+| 7180  | -    |
+| 5601  | -    |
+| 55555 | -    |
+
+
+
+### Hadoop配置文件和测试集群的搭建
+
+### HDFS读写流程
+<!-- TODO 手绘流程图并叙述 -->
+
+
+### MapReduce的Shuffle过程
+<!-- TODO 绘图并叙述 -->
+
+### Hadoop优化
+
+
+### Yarn的Job提交流程
+
+
+### Yarn调度器
+
+
+### LZO压缩
+
+### Hadoop参数调优
+
+
+### Hadoop宕机
+
+
 # Zookeeper
 ### 选举机制
 半数机制: 2n+1
@@ -87,6 +157,14 @@ hdfs.roundUnit=second
 # Kafka
 ### Kafka架构
 <!-- TOOD 手绘Kafka架构图 -->
+
+### Kafka概念
+
+* AR 所有副本
+* ISR 与leader保持同步的follow集合
+* OSR 与leader未保持同步的副本集合
+* LEO 每个副本的最后一条消息的offset
+* HW 一个分区中，所有副本最小的offset
 
 ### Kafka压测
 Kafka官方压测脚本kafka-consumer-pref-test.sh kafka-producer-pref-test.sh
@@ -240,13 +318,13 @@ export KAFKA_HEAP_OPTS="-Xms4g -Xmx4g"
 ### Hive架构
 ### Hive和数据库比较
 1. 数据存储位置不同
-  Hive存储在HDFS，数据库将数据保存在块设备或者本地文件系统中
+    Hive存储在HDFS，数据库将数据保存在块设备或者本地文件系统中
 2. 数据更新
-  Hive不建议对数据改写，而数据库中的数据通常是需要经常进行修改的
+    Hive不建议对数据改写，而数据库中的数据通常是需要经常进行修改的
 3. 执行延迟
-  Hive执行延迟较高，数据库的执行延迟低，但是数据库的数据规模也较小，当数据的规模超过数据库的处理能力时，Hive的并行计算显然能体现出优势
+    Hive执行延迟较高，数据库的执行延迟低，但是数据库的数据规模也较小，当数据的规模超过数据库的处理能力时，Hive的并行计算显然能体现出优势
 4. 数据规模
-  Hive支持很大规模的数据计算，数据库可以支持的数据规模较小
+    Hive支持很大规模的数据计算，数据库可以支持的数据规模较小
 
 ### 内部表和外部表
 **管理表** 当删除一个管理表时，Hive也会删除表对应的数据，管理表不适合和其他工具共享数据
@@ -356,7 +434,7 @@ sqoop export --connect jdbc:mysql://192.168.137.10:3306/user_behavior \
 2. 场景2: 设置map数量为1个(不推荐，面试官想要的答案不只是这个)，多个map任务时，采用-staging-table方式，任然可以解决数据一致性问题
 
 ### Sqoop底层运行的任务是什么
-只有Map阶段，没有Reduce阶段的任务
+只有Map阶段，没有Reduce阶段的任务，默认开启4个MR
 
 ### Sqoop数据导出的时候一次执行多长时间
 Sqoop任务5分钟~2小时的都有，取决于数量
@@ -367,8 +445,17 @@ Sqoop任务5分钟~2小时的都有，取决于数量
 # Spark
 
 # Spark Sql, DataFrames, DataSet
+### Spark Streaming第一次运行不丢失数据
+kafka参数`auto.offset.reset`参数设置成earliest从最初始偏移量开始消费数据
 
+### Spark Streaming精准一次消费
+1. 手动维护偏移量offset
+2. 处理完业务数据后再进行提交偏移量操作
 
+极端情况下，如在提交偏移量时断网或停电会造成spark程序第二次启动时重复消费问题，所以在涉及到金额和精确计算的场景需要使用事务保证一次消费
+
+### Spark Streaming控制每秒消费数据的速度
+通过`spark.streaming.kafka.maxRatePerPartition`参数
 # SparkStreaming
 
 
