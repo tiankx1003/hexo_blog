@@ -475,8 +475,142 @@ OutputPath
 ### 手绘并描述Spark架构和作提交流程(重点)
 <!-- TODO 添加配图 -->
 
+### Spark中血统的理解(笔试重点)
+RDD在Lineage依赖方面分为两种Narrow Dependencies与Wide Dependencies用来解决数据容错时的高效性以及划分任务时候起到作用
+
+### 简述Spark的宽窄依赖，以及Spark如何划分stage，每个stage根据什么决定task个数
+根据RDD之间的依赖关系不同将job划分成不同的stage，遇到一个宽依赖则划分一个stage
+stage是一个TaskSet，将Stage根据分区数划分成一个个的Task
+<!-- TODO 待补充 -->
+
+### 列举Spark中的transformation算子并简述
+
+
+
+### 列举Spark中的action算子并简述
+
+
+### 列举会引起Shuffle过程的Spark算子并简述功能
+
+### 简述Spark的两种核心Shuffle(HashShuffle和SortShuffle)的工作流程(包括未优化的HashShuffle、优化的HashShuffle、普通的SortShuffle与bypass的SortShuffle)(重点)
+<!-- TODO 绘图描述 -->
+
+
+### Spark常用算子reduceByKey与groupByKey的区别，哪一种更具优势(重点)
+reduceByKey按照key进行聚合，在shuffle之前有combine(预聚合)操作，返回结果是`RDD[K,V]`
+groupByKey按照key进行分组，直接进行shuffle
+在不影响业务逻辑的情况下，推荐使用reduceByKey
+
+### Repartition和Coalesce关系和区别
+**关系**
+两者都是用来改变RDD的partition数量的，repartition底层调用的就是coalesce方法
+```scala
+coalesce(numPartitions, shuffle=true)
+```
+**区别**
+repartition一定会发生shuffle，coalesce根据传入参数来判断是否发生shuffle
+一般情况下增大rdd的partition数量使用repartition，减少partition数量使用coalesce
+
+### 简述Spark的缓存机制，并指出区别和联系
+都是RDD持久化
+cache内存，不会截断血缘关系，使用计算过程中的数据缓存
+checkpoint，磁盘，截断血缘关系，在ck之前必须没有任何任务提交才会失效，ck过程会提交一次任务
+
+### 简述Spark共享变量的原理和用途
+
+### 简述SparkSQL中RDD DataFrame DataSet三者的区别与联系
+1. RDD
+优点: 编译时类型安全，编译时能检查出类型错误，面向对象的编程风格，直接通过类点名的方式来操作数据
+缺点: 序列化和反序列化的性能开销
+无论是集群间的通信，还是IO操作都需要对对象的结构和数据进行序列化和反序列化
+GC的性能开销，频繁的创建和销毁对象，势必会增加GC
+
+2. DataFrame
+DataFrame引入了schema和off-heap
+schema: RDD每一行的数据，结构都是一样的，这个结构就存储在schema中，Spark通过schema就能够读懂数据，因此在通信和IO时就只需要序列化和反序列化数据，而结构的部分就可以省略了
+
+3. DataSet
+DataSet结合RDD和DataFrame的优点，并带来的一个新的概念Encoder
+当序列化数据时，Encoder产生字节码与off-heap进行交互，能够达到按需访问数据的效果，而不用反序列化整个对象。Spark还没有提供自定义Encoder的API，但是未来会加入。
+
+<!-- TODO 三者之间的转换 -->
+
+
+
+### 当Spark涉及到数据库的操作时，如何减少运行中的数据库连接数
+使用foreachPartition代替foreach，在foreachPartition内获取数据库的连接
+
+### SparkSQL中join操作和left join操作的区别
+
+
+### SparkStreaming有哪几种方式消费Kafka中的数据，他们之间的区别是什么
+
+
+### 简述SparkStreaming窗口函数的原理
+窗口函数就是在原来定义的SparkStreaming计算批次大小的基础上再次进行封装，每次计算多个批次的数据，同时还需要传递一个滑动步长的参数，用来设置当次计算任务完成之后下一次从什么地方开始计算
+
+### 手写WordCount的Spark实现
+```scala
+val conf: SparkConf = new SparkConf().setMaster("local[*]").setAppName("WordCount")
+val sc = new SparkContext(conf)
+sc.textFile("/input")
+    .flatMap(_.split(" "))
+    .map((_,1))
+    .reduceByKey(_+_)
+    .saveAsTextFile("/output")
+sc.stop()
+```
+
+### 如何使用Spark实现TopN的获取(描述思路或使用伪代码)
+**方法一**
+1. 按照key对数据进行聚合(groupByKey)
+2. 将value转换成数组，利用scala的sortBy或者sortWith进行排序(mapValues)数据量太大，会OOM
+**方法二**
+1. 取出所有的key
+2. 对key进行迭代，每次取出一个key利用spark的排序算子进行排序
+**方案三**
+1. 自定义分区器，按照key进行分区，是不同的key进到不同的分区
+2. 对每个分区运用spark的排序算子进行排序
+
+
+### 调优之前和调优之后性能的详细对比
+对于几百个文件，相应的有几百个map，读取数据之后进行join操作，会非常的慢，这个时候使用coalesce操作，比如240个map，我们合成60个map，也就是宽依赖。这样再shuffle，过程产生的文件数会大大减少，从而提高join的性能
 
 # Spark Sql, DataFrames, DataSet
+### append和overwrite的区别
+append再原有分区上进行追加，overwrite在原有分区上进行全量刷新
+
+### cache缓存级别
+DataFrame的cache默认采用MEMORY_AND_DISK这和RDD的默认方式不一样RDD cache默认采用MEMORY_ONLY
+
+### 释放缓存和缓存
+```scala
+// 缓存
+dataFrame.cache
+sparkSession.catalog.cacheTable("tableName")
+// 释放缓存
+dataFrame.unpersist
+sparkSession.catalog.uncacheTable("tableName")
+```
+
+### Spark Shuffle默认并行度
+参数`spark.sql.shuffle.partitions`决定，默认并行度为200
+
+### Kryo序列化
+kryo序列化比java序列化更快更紧凑，但spark默认的序列化是java而不是kryo，因为spark不支持所有序列化类型，在需要时进行注册，注册只针对于RDD，DF和DS自动实现了kryo
+
+### BroadCast Join
+先将小表数据查询出来聚合到driver端，再广播到各个executor端，使表与表join时进行本地join，避免进行网络传输产生shuffle
+使用场景:大表join小表，只能广播小表
+
+### 控制Spark reduce缓存 调优shuffle
+`spark.reducer.maxSizeInFilght`此参数为reduce task能够拉取多少数据量的一个参数默认48M，当集群资源足够时，增大此参数可减少reduce拉取数据量的次数，从而达到优化shuffle的效果，一般调大96MB，资源够大可继续往上调
+`spark.shuffle.file.buffer`此参数为每个shuffle文件输出流的内存缓冲区大小，调大此参数可以减少在创建shuffle文件时进行磁盘搜索和系统调用的次数，默认参数为32k，一般调大为64k
+
+### 注册UDF函数
+```scala
+SparkSession.udf.register
+```
 
 # SparkStreaming
 ### Spark Streaming第一次运行不丢失数据
@@ -499,7 +633,7 @@ Spark Streaming stage耗时由最慢的task决定，所以根据倾斜时某个t
 
 ### Spark Streaming优雅关闭
 把`spark.streaming.stopGracefullyOnShutdown`参数设置成true，Spark会在JVM关闭时正常关闭StreamingContext，而不是立马关闭
-或者使用命令`kill application -kill {applicationid}`
+或者使用命令`yarn application -kill {applicationid}`
 
 ### Spark Streaming默认分区个数
 Spark Streaming默认分区个数和所对接的kafka topic分区个数一致，Spark Streaming里一般不会使用repartition算子增大分区，因为repartition会进行shuffle增加耗时
