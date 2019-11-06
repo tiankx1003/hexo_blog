@@ -1,6 +1,6 @@
 ---
-title: Interview--HQL
-typora-copy-images-to: Interview--HQL
+title: Interview--SQL
+typora-copy-images-to: Interview--SQL
 tags:
  - BigData
  - Interview

@@ -1,6 +1,6 @@
 ---
-title: Interview--HQL
-typora-copy-images-to: Interview--HQL
+title: Interview--SQL
+typora-copy-images-to: Interview--SQL
 tags:
  - BigData
  - Interview
@@ -9,12 +9,18 @@ tags:
     求：找出所有科目成绩都大于某一学科平均成绩的用户
 
 ```sql
-select uid, score, sub_avg
-from 
-    (select uid, score, subject_id, avg(score) sub_avg
-    from score_tab
-    group by subject_id) t1
-where score > sub_avg;
+SELECT uid, subject_id, avg_sub, score
+FROM (
+	SELECT uid, t1.subject_id, score, avg_sub
+	FROM score_tab t1
+		JOIN (
+			SELECT subject_id, AVG(score) AS avg_sub
+			FROM score_tab
+			GROUP BY subject_id
+		) t2
+		ON t1.subject_id = t2.subject_id
+) t3
+WHERE score > avg_sub;
 ```
 
 
@@ -43,17 +49,15 @@ where score > sub_avg;
 
 ```sql
 -- 用户名大小写转换，日期格式转换，开窗计算小计和累积
-select t2.id `用户id`,t2.mn `月份`,sum_vc `小计`,
-	sum(sum_vc) over(partition by t2.id order by t2.mn) `累积`
-from(
-	select id,mn,sum(vc) sum_vc
-	from(
-		select lower(userid) id,
-			from_unixtime(unix_timestamp(visitdate,'yyyy/mm/dd'),'yyyy-mm') mn,
-			visitcount vc
-		from user_table
-		)t1
-	group by id,mn)t2;
+SELECT t2.id AS `用户id`, t2.mn AS `月份`, sum_vc AS `小计`, SUM(sum_vc) OVER (PARTITION BY t2.id ORDER BY t2.mn) AS `累积`
+FROM (
+	SELECT id, mn, SUM(vc) AS sum_vc
+	FROM (
+		SELECT lower(userid) AS id, from_unixtime(unix_timestamp(visitdate, 'yyyy/mm/dd'), 'yyyy-mm') AS mn, visitcount AS vc
+		FROM user_table
+	) t1
+	GROUP BY id, mn
+) t2;
 ```
 
 3. 有50W个京东店铺，每个顾客访客访问任何一个店铺的任何一个商品时都会产生一条访问日志，访问日志存储的表名为Visit，访客的用户id为user_id，被访问的店铺名称为shop，请统计：
