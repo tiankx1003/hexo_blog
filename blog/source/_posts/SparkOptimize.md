@@ -73,7 +73,7 @@ SMB JOIN（Sort-Merge-Bucket）是针对bucket majoin的一种优化
 
 **使用条件**
 两张表的bucket必须相等
-bucket列==joinlie==sort列
+bucket列 = join列 = sort列
 必须应用在bucket mapjoin，建表时，必须是clustered且sorted
 
 **在Hive中的使用**
@@ -110,8 +110,8 @@ result.persist(StorageLevel.MEMORY_ONLY_SER) //设置缓存级别
 Spark对于DF和DS要比RDD的优化程度更高，尽量只使用DF和DS，DF和DS是Spark的未来趋势，RDD可能在v3.0之后取消。
 
 ## 4.Spark Reduce Buf & Shuffle Optimize
-参数`spark.reducer.maxSizeFlight`表示reduce task拉取多少数据量，默认为48M，当集群资源足够时，增大此参数可以减少reduce的拉取次数，从而达到优化shuffle的效果，一般调大到94M，如果资源足够大可以继续往上调
-参数`spark.shuffle.file.buffer`
+参数`spark.reducer.maxSizeFlight`表示reduce task拉取多少数据量，默认为48M，当集群资源足够时，增大此参数可以减少reduce的拉取次数，从而达到优化shuffle的效果，一般调大到96M，如果资源足够大可以继续往上调
+参数`spark.shuffle.file.buffer` shuffle写的临时文件的大小，默认32k，优化到64k
 这两个参数都是优化次数，效果不明显，只有5%优化率，在超大规模的数据场景下才能发挥作用。
 参数`spark.sql.shuffle.partitions`可用于调整shuffle并行度，默认200，一般设置为core个数的两倍或者三倍
 

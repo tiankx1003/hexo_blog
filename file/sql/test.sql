@@ -1,3 +1,5 @@
+-- 0
+-- 表score_tab 结构：uid,subject_id,score 求：找出所有科目成绩都大于某一学科平均成绩的用户
 create table score_tab(
 	uid varchar(10),
 	subject_id varchar(10),
@@ -12,9 +14,18 @@ insert into  `score_tab` values ('003','b',66);
 insert into  `score_tab` values ('001','c',11);
 insert into `score_tab` values ('003','c',89);
 
-select subject_id, avg(score),uid
-from score_tab
-group by subject_id,uid
+SELECT uid, subject_id, avg_sub, score
+FROM (
+	SELECT uid, t1.subject_id, score, avg_sub
+	FROM score_tab t1
+		JOIN (
+			SELECT subject_id, AVG(score) AS avg_sub
+			FROM score_tab
+			GROUP BY subject_id
+		) t2
+		ON t1.subject_id = t2.subject_id
+) t3
+WHERE score > avg_sub;
 
 -- 1
 drop table if exists `user_table`;
