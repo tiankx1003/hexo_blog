@@ -482,13 +482,38 @@ RDD在Lineage依赖方面分为两种Narrow Dependencies与Wide Dependencies用�
 根据RDD之间的依赖关系不同将job划分成不同的stage，遇到一个宽依赖则划分一个stage
 stage是一个TaskSet，将Stage根据分区数划分成一个个的Task
 <!-- TODO 待补充 -->
+由于 Spark 的懒执行, 在驱动程序调用一个action之前, Spark 应用不会做任何事情.
+**针对每个 action, Spark 调度器就创建一个执行图(execution graph)和启动一个 Spark job**
+每个 job 由多个stages 组成, 这些 stages 就是实现最终的 RDD 所需的数据转换的步骤. 一个宽依赖划分一个 stage.
+每个 stage 由多个 tasks 来组成, 这些 tasks 就表示每个并行计算, 并且会在多个执行器上执行.
 
 ### 列举Spark中的transformation算子并简述
-
+ * `map(func)` 按照func对RDD中的每个元素进行转换得到新的RDD，用于改变RDD的数据结构类型
+ * `mapPartitions(func)` 类似于map，但独立地在RDD的每一个分片上运行，`Iterator[T] => Iterator[U]`，每个分区执行一次func操作
+ * `mapPartitionsWithIndex(func)` 和mapPartitions(func)类似. 但是会给func多提供一个Int值来表示分区的索引
+ * `flatMap(fun)` 类似于map，但是每一个输入元素可以被映射为0或多个输出元素，func返回一个序列
+ * `glom()` 将每一个分区的元素合并成一个数组，形成新的 RDD 类型是`RDD[Array[T]]`
+ * `groupBy(func)` 按照func的返回值进行分组
+ * `filter(func)` 过滤，返回func返回值为true的元素组成的RDD
+ * `coalesce(numPartitions)` 缩减分区数到指定数量
+ * `repartition(numPartitions)` 根据新的分区数重新shuffle数据，分区数可以增多或减少
+ * `reduceByKey(func, [numTask])` 在一个(K, V)的RDD上调用，返回一个(K, V)的RDD，使用reduce函数，将相同key的值聚合到一起，reduce任务的个数可以通过第二个可选的参数来设置
+ * `aggregateByKey(zeroValue:U,[partition:Partitioner])(seqOp:(U,V)=>U,combOp:(U,U)=>U)` 在kv对的RDD中，按key将value进行分组合并，合并时，将每个value和初始值作为seq函数的参数，进行计算，返回的结果作为一个新的kv对，然后再将结果按照key进行合并，最后将每个分组的value传递给combine函数进行计算(先将前两个value进行计算)，将返回结果和下一个value传给combine函数，以此类推)，将key与计算结果作为一个新的kv输出。
+ * `combineByKey(createCombiner:V=>C, mergeValue:(C,V)=>C,mergeCombiners:(C,C)=>C)` 对相同K，把V合并成一个集合
 
 
 ### 列举Spark中的action算子并简述
-
+ * `reduce(func)` 通过func函数聚集RDD中的所有元素，先聚合分区内数据，再聚合分区间数据
+ * `collect` 以数组的形式返回RDD中的所有元素，所有的的数据都会被拉到driver端，慎用(OOM)
+ * `first` 返回RDD中的第一个元素
+ * `take(n)` 返回RDD中前n个元素组成的数组
+ * `count` 返回RDD中元素的个数
+ * `foreach(func)` 对每个RDD执行一次func
+ * `aggregate[U: ClassTag](zeroValue: U)(seqOp: (U, T) => U, combOp: (U, U) => U)` aggregate函数将每个分区里面的元素通过seqOp和初始值进行聚合，然后用combine函数将每个分区的结果和初始值(zeroValue)进行combine操作。这个函数最终返回的类型不需要和RDD中元素类型一致，zeroValue会在分区内聚合和分区间聚合各使用一次
+ * `fold` 折叠操作，aggregate的简化操作，seqop和combop一样的时候，可使用fold
+ * `countByKey()`针对(K,V)类型的 RDD，返回一个(K,Int)的map，表示每一个key对应的元素个数，用于查看数据是否倾斜
+ * `saveAsTextFile(path)` 将数据集的元素以textfile的形式保存到指定文件系统
+ * `saveAsSequenceFile(path)` 将数据集的元素以Hadoop sequenceFile的形式保存到Hadoop支持的文件系统
 
 ### 列举会引起Shuffle过程的Spark算子并简述功能
 
@@ -517,6 +542,21 @@ cache内存，不会截断血缘关系，使用计算过程中的数据缓存
 checkpoint，磁盘，截断血缘关系，在ck之前必须没有任何任务提交才会失效，ck过程会提交一次任务
 
 ### 简述Spark共享变量的原理和用途
+ * 累加器(accumulator)是spark中提供的一种分布式的变量机制，其原理类似于mapreduce，即分布式的改变，然后聚合这些改变
+ * 累加器主要用于累加计数性质，广播变量主要用于高效的分发较大的对象
+ * Spark中在做map或者filter时，executor都会用到driver中的变量，而每个节点上操作这些变量不会真正改变driver中的值
+ * 累加器和广播变量主要用于结果聚合和广播这两种通信模式
+
+    **累加器**
+ * 分布式运行，driver发给executor的是变量的值，在executor运算和driver的值无关
+ * 累加器实现了共享变量的修改
+ * 累加器只在行动算子中使用，不在转换算子中使用
+
+    **广播变量**
+ * 当driver传递给executor变量只用于读取时
+ * 同一个进程的每一个task线程都有一个变量，数据冗余，占用内存
+ * 广播变量不直接发给每个task线程，而是直接发到executor，task线程共享变量
+ * 极大的优化了内存的占用
 
 ### 简述SparkSQL中RDD DataFrame DataSet三者的区别与联系
 1. RDD
