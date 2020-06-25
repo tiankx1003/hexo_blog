@@ -27,7 +27,8 @@ vim _config.yml
 # 下载主题，修改_config.yml更换主题
 git clone http://github.com/litten/hexo-theme-yilia.git themes/yilia
 git clone https://github.com/Molunerfinn/hexo-theme-melody.git themes/melody
-npm install hexo-renderer-jade hexo-renderer-stylus
+cnpm install hexo-renderer-pug hexo-renderer-stylus
+cnpm install https://github.com/CodeFalling/hexo-asset-image --save
 mkdir theme/yilia/source/img # 添加头像
 # 清理Hexo
 hexo clean

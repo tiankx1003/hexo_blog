@@ -12,6 +12,7 @@
     "version": "4.2.1"
   },
   "dependencies": {
+    "gitalk": "^1.6.2",
     "hexo": "^4.2.1",
     "hexo-asset-image": "https://github.com/CodeFalling/hexo-asset-image",
     "hexo-browsersync": "^0.3.0",
