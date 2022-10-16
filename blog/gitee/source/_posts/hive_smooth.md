@@ -3,6 +3,8 @@ title: Hive笛卡尔积实现数据平滑
 tags:
  - BigData
  - Hive
+tpp: True
+date: 2020-11-25 12:00:00
 ---
 
 
