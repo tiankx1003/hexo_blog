@@ -13,10 +13,10 @@
   },
   "dependencies": {
     "gitalk": "^1.6.2",
-    "hexo": "^4.2.1",
+    "hexo": "^6.3.0",
     "hexo-asset-image": "https://github.com/CodeFalling/hexo-asset-image",
     "hexo-browsersync": "^0.3.0",
-    "hexo-deployer-git": "^2.1.0",
+    "hexo-deployer-git": "^4.0.0",
     "hexo-generator-archive": "^1.0.0",
     "hexo-generator-category": "^1.0.0",
     "hexo-generator-feed": "^2.2.0",
